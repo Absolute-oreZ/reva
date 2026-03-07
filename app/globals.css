@@ -189,3 +189,8 @@
     height: 100%;
   }
 }
+
+[data-sonner-toast] [data-description] {
+  color: calc(var(--popover-foreground)) !important;
+  opacity: 1 !important;
+}

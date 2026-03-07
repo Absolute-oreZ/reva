@@ -28,12 +28,19 @@ const NavigationMenu = () => {
     <header>
       <nav className="fixed top-6 left-0 right-0 z-50 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between relative">
-          
+
           <Link
             href="/"
             className="flex items-center gap-2 px-4 py-2 bg-background/90 backdrop-blur-md rounded-full shadow-lg transition-transform hover:scale-105 cursor-pointer"
           >
-            <Image src="/icons/logo.png" alt="logo" width={28} height={28} />
+            <Image
+              src="/icons/logo.png"
+              alt="logo"
+              width={0}
+              height={0}
+              sizes="28px"
+              className="w-7 h-7"
+            />
             <span className="font-bold text-foreground text-lg tracking-tighter">REVA</span>
           </Link>
 
@@ -41,7 +48,7 @@ const NavigationMenu = () => {
             <ul className="flex items-center space-x-1 relative">
               {NAV_LINKS.map((link) => {
                 const isActive = pathname === link.href;
-                
+
                 return (
                   <li key={link.name} className="relative">
                     <Link
@@ -104,8 +111,8 @@ const NavigationMenu = () => {
                       onClick={() => setIsOpen(false)}
                       className={cn(
                         "w-full py-4 text-center rounded-2xl font-semibold transition-colors",
-                        isActive 
-                          ? "bg-primary/10 text-primary" 
+                        isActive
+                          ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:bg-muted"
                       )}
                     >

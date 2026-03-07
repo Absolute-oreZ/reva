@@ -1,9 +1,9 @@
-export default function NewMoment() {
-    return (
-        <main className="min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden font-sans">
-            <section className="py-24 px-6 md:px-20">
-                New Echo
-            </section>
-        </main>
-    )
+import EchoWizard from "@/components/echoes/echo-wizard";
+
+export default function NewEchoPage() {
+  return (
+    <main className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <EchoWizard />
+    </main>
+  );
 }
