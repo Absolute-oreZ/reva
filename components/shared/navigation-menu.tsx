@@ -59,16 +59,16 @@ const NavigationMenu = () => {
         switch (authState) {
             case "loading":
                 return (
-                    <div className="hidden md:flex h-12 w-24 rounded-full bg-muted/40 animate-pulse" />
+                    <div className="hidden md:flex h-10 w-24 rounded-full bg-muted/40 animate-pulse" />
                 );
 
             case "guest":
                 return (
                     <Link
                         href="/login"
-                        className="hidden md:flex items-center gap-2 px-6 py-3 rounded-full shadow-lg shadow-primary/20 transition-all active:scale-95 group"
+                        className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full bg-background/90 text-sm font-medium shadow-lg shadow-primary/20 transition-all hover:opacity-90 active:scale-95 group"
                     >
-                        <LogIn size={18} className="group-hover:translate-x-0.5 transition-transform" />
+                        <LogIn size={16} className="group-hover:translate-x-0.5 transition-transform" />
                         <span>Login</span>
                     </Link>
                 );
@@ -252,7 +252,6 @@ const NavigationMenu = () => {
                                     );
                                 })}
                             </div>
-
                             {renderMobileAuthAction()}
                         </motion.div>
                     )}

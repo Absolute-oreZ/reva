@@ -1,9 +1,34 @@
-export default function Globe() {
+import { createClient } from "@/lib/supabase/server";
+import GlobeView from "@/components/globe/globe-view";
+
+export const revalidate = 60; // re-fetch server data every 60s
+
+export type GlobeEcho = {
+    id: string;
+    title: string;
+    description: string;
+    intensity: number;
+    latitude: number;
+    longitude: number;
+    location: string;
+    display_name: string;
+    created_at: string;
+    image_url: string | null;
+};
+
+export default async function GlobePage() {
+    const supabase = await createClient();
+
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: echoes } = await supabase
+        .from("echoes")
+        .select("id, title, description, intensity, latitude, longitude, location, display_name, created_at, image_url")
+        .eq("is_public", true)
+        .gte("created_at", since)
+        .order("created_at", { ascending: false });
+
     return (
-        <main className="min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden font-sans">
-            <section className="py-24 px-6 md:px-20">
-                Globe
-            </section>
-        </main>
-    )
+        <GlobeView initialEchoes={(echoes as GlobeEcho[]) ?? []} />
+    );
 }
