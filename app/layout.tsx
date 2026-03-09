@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Space_Mono } from "next/font/google";
 import "./globals.css";
-import NavigationMenu from "@/components/navigation-menu";
-import {Toaster} from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 const fontSans = DM_Sans({
   subsets: ["latin"],
@@ -35,7 +34,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}>
-        <NavigationMenu />
         {children}
         <Toaster />
       </body>

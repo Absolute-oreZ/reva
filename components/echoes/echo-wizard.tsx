@@ -15,7 +15,6 @@ import {
     Loader2,
     Search,
     Check,
-    AlertCircle,
     ShieldCheck,
     Globe,
     Radio,
@@ -23,23 +22,27 @@ import {
     Dices,
     History,
     Loader2Icon,
-    OctagonXIcon
+    OctagonXIcon,
+    AlertCircle,
+    LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import Threads from "@/components/Threads";
+import Threads from "@/components/shared/Threads";
 import Link from "next/link";
-import { createEcho } from "@/app/echoes/new/action";
-import { EchoInput } from "@/app/echoes/new/schema";
+import { createEcho } from "@/app/(main)/echoes/new/action";
+import { EchoInput } from "@/app/(main)/echoes/new/schema";
 import { createClient } from "@/lib/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const STEPS = [
     { id: "anchor", label: "Location", sub: "Set Origin" },
     { id: "signal", label: "Message", sub: "Write Echo" },
     { id: "archive", label: "Publish", sub: "Finalize" },
+    { id: "success", label: "Complete", sub: "Transmission Sent" },
 ];
 
 const STORAGE_KEY = "echo_wizard_progress";
@@ -72,6 +75,7 @@ export default function EchoWizard() {
     const [isUploading, setIsUploading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isIdentityReady, setIsIdentityReady] = useState(false);
+    const [user, setUser] = useState<SupabaseUser | undefined | null>(null);
 
     const hasCheckedForDraft = useRef(false);
 
@@ -95,10 +99,8 @@ export default function EchoWizard() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
             const { formData: savedForm, step: savedStep } = JSON.parse(saved);
-
             setFormData(savedForm);
             setStep(savedStep);
-
             if (savedForm.image_url) {
                 setPreviewUrl(savedForm.image_url);
             }
@@ -113,29 +115,25 @@ export default function EchoWizard() {
     useEffect(() => {
         const ensureIdentity = async () => {
             const { data: { session } } = await supabase.auth.getSession();
+            let currentUser = session?.user ?? null;
 
             if (!session) {
-                const { error } = await supabase.auth.signInAnonymously();
-                if (error) {
-                    console.error("Identity Sync Error:", error.message);
-                    // todo notify user they are offline/out of sync
-                }
+                const { data } = await supabase.auth.signInAnonymously();
+                currentUser = data.user;
             }
+
+            setUser(currentUser);
             setIsIdentityReady(true);
         };
-
         ensureIdentity();
     }, [supabase]);
 
     useEffect(() => {
         if (hasCheckedForDraft.current) return;
-
         const savedData = localStorage.getItem(STORAGE_KEY);
         const savedTime = localStorage.getItem(TIMESTAMP_KEY);
-
         if (savedData && savedTime) {
             const isExpired = Date.now() - parseInt(savedTime) > EXPIRATION_MS;
-
             if (!isExpired) {
                 const timer = setTimeout(() => {
                     toast("Resume your Echo?", {
@@ -167,7 +165,7 @@ export default function EchoWizard() {
             (formData.location.length > 0 && formData.latitude !== 0) ||
             formData.title !== "";
 
-        if (hasData && !isSubmitting) {
+        if (hasData && !isSubmitting && step < STEPS.length - 1) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData, step }));
             localStorage.setItem(TIMESTAMP_KEY, Date.now().toString());
         }
@@ -181,13 +179,11 @@ export default function EchoWizard() {
 
     const nextStep = () => {
         if (!isStepValid()) return;
-
         if (step === 1 && formData.title.trim() === "") {
             const timeSeed = Date.now().toString().slice(-6);
             const randomSeed = Math.floor(100 + Math.random() * 900);
             setFormData(prev => ({ ...prev, title: `Echo#${timeSeed}${randomSeed}` }));
         }
-
         setStep((s) => Math.min(s + 1, STEPS.length - 1));
     };
 
@@ -199,7 +195,7 @@ export default function EchoWizard() {
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.location)}&limit=1`);
             const data = await res.json();
-            if (data && data.length > 0) {
+            if (data?.[0]) {
                 setFormData(prev => ({
                     ...prev,
                     latitude: parseFloat(data[0].lat),
@@ -217,8 +213,7 @@ export default function EchoWizard() {
         setIsLocating(true);
         navigator.geolocation.getCurrentPosition(
             async (pos) => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
+                const { latitude: lat, longitude: lon } = pos.coords;
                 try {
                     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
                     const data = await res.json();
@@ -240,7 +235,6 @@ export default function EchoWizard() {
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         setIsUploading(true);
 
         if (formData.image_url) {
@@ -274,50 +268,38 @@ export default function EchoWizard() {
     };
 
     const handleRemoveImage = async () => {
-        if (formData.image_url) {
-            const path = formData.image_url.split('/').pop();
-            if (path) {
-                await supabase.storage.from('echo-images').remove([`uploads/${path}`]);
-            }
-        }
         setPreviewUrl(null);
         setFormData(prev => ({ ...prev, image_url: "" }));
-        toast.info("Visual fragment removed");
     };
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
-
         const result = await createEcho(formData);
-
         if (result.success) {
-            toast.success("Echo Transmitted", {
-                description: "Your signal has been written to the global archive.",
-            });
             clearDraft();
-            setTimeout(() => router.push("/globe"), 1500);
+            setStep(3);
         } else {
-            toast.error("Validation Error", {
-                description: result.message,
-            });
-            setIsSubmitting(false);
+            toast.error("Error", { description: result.message });
         }
+        setIsSubmitting(false);
     };
 
     const generateAnonymousName = () => {
-        const randomName = uniqueNamesGenerator({
-            dictionaries: [adjectives, animals],
-            separator: ' ',
-            style: 'capital'
-        });
+        const randomName = uniqueNamesGenerator({ dictionaries: [adjectives, animals], separator: ' ', style: 'capital' });
         setFormData(prev => ({ ...prev, display_name: `Anonymous ${randomName}` }));
     };
 
     useEffect(() => {
-        if (formData.display_name === "Anonymous Observer") {
-            generateAnonymousName();
-        }
+        if (formData.display_name === "Anonymous Observer") generateAnonymousName();
     }, []);
+
+    const handlePreAuthRedirect = (destination: "/login" | "/signup") => {
+        if (user?.id) {
+            localStorage.setItem("anon_claim_id", user.id);
+        }
+        clearDraft();
+        router.push(destination);
+    };
 
     return (
         <div className="z-10 w-full max-w-5xl flex flex-col md:flex-row gap-6 md:gap-12 px-4 md:px-6 py-4 md:py-0">
@@ -394,12 +376,10 @@ export default function EchoWizard() {
                             </div>
 
                             <div className="flex gap-3 md:gap-4 mt-6">
-
                                 <div className="flex flex-col gap-2 shrink-0">
                                     <label className="text-[10px] md:text-xs font-mono text-muted-foreground uppercase tracking-widest px-1">
                                         Photo
                                     </label>
-
                                     <div className="relative h-12 w-12 shrink-0">
                                         {previewUrl ? (
                                             <div className="group relative h-full w-full rounded-xl overflow-hidden border border-primary/30 shadow-sm shadow-primary/10">
@@ -559,30 +539,103 @@ export default function EchoWizard() {
                             </div>
                         </motion.div>
                     )}
+
+                    {step === 3 && (
+                        <motion.div key="step3" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-8 py-12">
+                            <div className="relative inline-block">
+                                <div className="absolute inset-0 animate-ping bg-primary/20 rounded-full" />
+                                <div className="relative bg-primary p-6 rounded-full shadow-2xl shadow-primary/40">
+                                    <Zap className="h-12 w-12 text-primary-foreground" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <h2 className="text-4xl font-bold tracking-tighter">Echo Transmitted</h2>
+                                <p className="text-muted-foreground max-w-xs mx-auto italic">Your memory has been etched into the network.</p>
+                            </div>
+
+                            {user?.is_anonymous ? (
+                                <div className="p-6 rounded-[2.5rem] bg-card border border-primary/20 max-w-sm mx-auto space-y-6 shadow-2xl shadow-primary/5">
+                                    <div className="flex items-center gap-3 text-left">
+                                        <ShieldCheck className="h-10 w-10 text-primary shrink-0" />
+                                        <div>
+                                            <h4 className="font-bold text-sm">Memory Checkpoint</h4>
+                                            <p className="text-xs text-muted-foreground">Secure this experience forever. Logged-in users never lose their echoes.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-3">
+                                        <Button
+                                            onClick={() => handlePreAuthRedirect("/signup")}
+                                            className="w-full rounded-full bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-transform h-12"
+                                        >
+                                            Create Permanent Identity
+                                        </Button>
+
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => handlePreAuthRedirect("/login")}
+                                            className="w-full rounded-full h-12 border-primary/20"
+                                        >
+                                            <LogIn className="h-4 w-4 mr-2" />
+                                            Sign In to Existing Account
+                                        </Button>
+
+                                        <Link
+                                            href="/globe"
+                                            className="text-xs text-muted-foreground hover:text-primary hover:bg-accent px-2 py-1 rounded-md transition-colors"
+                                        >
+                                            Maybe later, return to Globe
+                                        </Link>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-4 items-center">
+                                    <Link href="/globe" className="rounded-full px-8 py-2 text-primary-foreground bg-primary">
+                                        Return to Globe
+                                    </Link>
+                                    <Link href="/profile" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                                        View your Archive
+                                    </Link>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
                 </AnimatePresence>
 
-                <div className="mt-4 md:mt-8 flex items-center justify-between border-t border-border/50 pt-6 md:pt-8">
-                    <Button variant="ghost" onClick={prevStep} disabled={step === 0 || isSubmitting} className="rounded-full px-6 md:px-8 h-10 md:h-11 text-xs md:text-sm">
-                        <ChevronLeft className="mr-1 md:mr-2 h-4 w-4" /> Back
-                    </Button>
-                    {step < STEPS.length - 1 ? (
-                        <Button onClick={nextStep} disabled={!isStepValid()} className={`rounded-full px-8 md:px-12 h-10 md:h-12 text-sm md:text-base transition-all duration-500 ${isStepValid() ? "bg-primary shadow-xl shadow-primary/20" : "opacity-20 grayscale"}`}>
-                            Next Step <ChevronRight className="ml-1 md:mr-2 h-4 w-4" />
-                        </Button>
-                    ) : (
+                {step < STEPS.length - 1 && (
+                    <div className="mt-4 md:mt-8 flex items-center justify-between border-t border-border/50 pt-6 md:pt-8">
                         <Button
-                            onClick={handleSubmit}
-                            disabled={isSubmitting || !isIdentityReady}
-                            className="..."
+                            variant="ghost"
+                            onClick={prevStep}
+                            disabled={step === 0 || isSubmitting}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
                         >
-                            {!isIdentityReady || isSubmitting ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                                <>Upload to Globe <Zap className="..." /></>
-                            )}
+                            <ChevronLeft className="mr-2 h-4 w-4" /> Back
                         </Button>
-                    )}
-                </div>
+
+                        {step < STEPS.length - 2 ? (
+                            <Button
+                                onClick={nextStep}
+                                disabled={!isStepValid()}
+                                className="rounded-full px-8 md:px-12 h-10 md:h-12 text-sm md:text-base transition-all duration-500 shadow-xl shadow-primary/10 hover:shadow-primary/20"
+                            >
+                                Next Step <ChevronRight className="ml-1 h-4 w-4" />
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting || !isIdentityReady}
+                                className="rounded-full px-8 md:px-12 h-10 md:h-12 text-sm md:text-base transition-all duration-500 bg-primary shadow-xl shadow-primary/20 hover:shadow-primary/30"
+                            >
+                                {!isIdentityReady || isSubmitting ? (
+                                    <><Loader2 className="h-5 w-5 animate-spin" /> Transmitting</>
+                                ) : (
+                                    <>Upload to Globe <Zap className="ml-2 h-4 w-4" /></>
+                                )}
+                            </Button>
+                        )}
+                    </div>
+                )}
             </main>
         </div>
     );
