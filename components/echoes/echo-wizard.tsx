@@ -122,6 +122,18 @@ export default function EchoWizard() {
                 currentUser = data.user;
             }
 
+            if (currentUser && !currentUser.is_anonymous) {
+                const { data: profile } = await supabase
+                    .from("users")
+                    .select("display_name")
+                    .eq("id", currentUser.id)
+                    .single();
+
+                if (profile?.display_name) {
+                    setFormData((prev) => ({ ...prev, display_name: profile.display_name }));
+                }
+            }
+
             setUser(currentUser);
             setIsIdentityReady(true);
         };
@@ -290,8 +302,10 @@ export default function EchoWizard() {
     };
 
     useEffect(() => {
-        if (formData.display_name === "Anonymous Observer") generateAnonymousName();
-    }, []);
+        if (formData.display_name === "Anonymous Observer" && !user) {
+            generateAnonymousName();
+        }
+    }, [user]);
 
     const handlePreAuthRedirect = (destination: "/login" | "/signup") => {
         if (user?.id) {

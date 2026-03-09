@@ -27,6 +27,16 @@ const NavigationMenu = () => {
 
     const [authState, setAuthState] = useState<AuthState>("loading");
     const [user, setUser] = useState<SupabaseUser | null>(null);
+    const [displayName, setDisplayName] = useState<string | null>(null);
+
+    const fetchDisplayName = async (userId: string) => {
+        const { data } = await supabase
+            .from("users")
+            .select("display_name")
+            .eq("id", userId)
+            .single();
+        setDisplayName(data?.display_name ?? null);
+    };
 
     useEffect(() => {
         const resolveAuthState = (u: SupabaseUser | null): AuthState => {
@@ -38,12 +48,18 @@ const NavigationMenu = () => {
         supabase.auth.getUser().then(({ data: { user: u } }) => {
             setUser(u);
             setAuthState(resolveAuthState(u));
+            if (u && !u.is_anonymous) fetchDisplayName(u.id);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             const u = session?.user ?? null;
             setUser(u);
             setAuthState(resolveAuthState(u));
+            if (u && !u.is_anonymous) {
+                fetchDisplayName(u.id);
+            } else {
+                setDisplayName(null);
+            }
         });
 
         return () => subscription.unsubscribe();
@@ -54,6 +70,8 @@ const NavigationMenu = () => {
         router.push("/");
         router.refresh();
     };
+
+    const profileLabel = displayName ?? user?.email?.split("@")[0] ?? "Profile";
 
     const renderDesktopAuthAction = () => {
         switch (authState) {
@@ -66,7 +84,7 @@ const NavigationMenu = () => {
                 return (
                     <Link
                         href="/login"
-                        className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full bg-background/90 text-sm font-medium shadow-lg shadow-primary/20 transition-all hover:opacity-90 active:scale-95 group"
+                        className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-medium shadow-lg shadow-primary/20 transition-all hover:opacity-90 active:scale-95 group"
                     >
                         <LogIn size={16} className="group-hover:translate-x-0.5 transition-transform" />
                         <span>Login</span>
@@ -93,7 +111,7 @@ const NavigationMenu = () => {
                         >
                             <UserCircle2 size={16} />
                             <span className="max-w-30 truncate font-mono text-xs">
-                                {user?.email?.split("@")[0] ?? "Profile"}
+                                {profileLabel}
                             </span>
                         </Link>
                         <Button
@@ -117,7 +135,7 @@ const NavigationMenu = () => {
                     <Link
                         href="/login"
                         onClick={() => setIsOpen(false)}
-                        className="mt-2 py-4 w-full flex items-center justify-center bg-secondary rounded-2xl font-bold shadow-lg shadow-primary/10 transition-transform active:scale-95"
+                        className="mt-2 py-4 w-full flex items-center justify-center bg-primary text-primary-foreground rounded-2xl font-bold shadow-lg shadow-primary/10 transition-transform active:scale-95"
                     >
                         <LogIn size={20} className="mr-2" />
                         Login to REVA
@@ -145,7 +163,7 @@ const NavigationMenu = () => {
                             className="py-4 w-full flex items-center justify-center bg-primary/10 text-primary rounded-2xl font-semibold transition-transform active:scale-95"
                         >
                             <UserCircle2 size={20} className="mr-2" />
-                            My Profile
+                            {profileLabel}
                         </Link>
                         <button
                             onClick={() => { setIsOpen(false); handleSignOut(); }}
@@ -169,7 +187,7 @@ const NavigationMenu = () => {
 
                     <Link
                         href="/"
-                        className="flex items-center gap-2 px-4 py-2 bg-background/90 backdrop-blur-md rounded-full shadow-lg transition-transform hover:scale-105 cursor-pointer"
+                        className="flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-xl rounded-full shadow-lg transition-transform hover:scale-105 cursor-pointer"
                     >
                         <Image
                             src="/icons/logo.png"
@@ -182,7 +200,7 @@ const NavigationMenu = () => {
                         <span className="font-bold text-foreground text-lg tracking-tighter">REVA</span>
                     </Link>
 
-                    <div className="hidden md:flex items-center bg-background/80 backdrop-blur-md px-2 py-2 rounded-full shadow-lg relative">
+                    <div className="hidden md:flex items-center bg-background/80 backdrop-blur-xl px-2 py-2 rounded-full shadow-lg relative">
                         <ul className="flex items-center space-x-1 relative">
                             {NAV_LINKS.map((link) => {
                                 const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
@@ -217,7 +235,7 @@ const NavigationMenu = () => {
                             variant="outline"
                             size="icon"
                             onClick={() => setIsOpen(!isOpen)}
-                            className="md:hidden w-12 h-12 flex items-center justify-center bg-background rounded-full shadow-lg border-2 border-primary/20 text-foreground transition-transform active:scale-90"
+                            className="md:hidden w-12 h-12 flex items-center justify-center bg-background/80 backdrop-blur-xl rounded-full shadow-lg border-2 border-primary/20 text-foreground transition-transform active:scale-90"
                         >
                             {isOpen ? <X size={24} /> : <Menu size={24} />}
                         </Button>
@@ -230,7 +248,7 @@ const NavigationMenu = () => {
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="absolute top-20 left-4 right-4 bg-background rounded-3xl shadow-2xl border border-border p-4 flex flex-col gap-2 md:hidden overflow-hidden"
+                            className="absolute top-20 left-4 right-4 bg-background/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-border p-4 flex flex-col gap-2 md:hidden overflow-hidden"
                         >
                             <div className="flex flex-col gap-1">
                                 {NAV_LINKS.map((link) => {

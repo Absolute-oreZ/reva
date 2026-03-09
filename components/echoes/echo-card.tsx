@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Button } from "../ui/button";
+import { deleteEcho, toggleEchoVisibility } from "@/app/(main)/echoes/action";
+import { Button } from "@/components/ui/button";
 
 type Props = {
     echo: EchoFeedItem;
@@ -64,8 +65,6 @@ export default function EchoCard({ echo, index, isOwn = false, onDelete, onToggl
         setIsToggling(true);
 
         try {
-            // dynamically import to avoid bloating the global bundle
-            const { toggleEchoVisibility } = await import("@/app/(main)/echoes/action");
             const result = await toggleEchoVisibility(echo.id, prev);
 
             if (!result.success) {
@@ -87,7 +86,6 @@ export default function EchoCard({ echo, index, isOwn = false, onDelete, onToggl
     const handleDelete = async () => {
         setIsDeleting(true);
         try {
-            const { deleteEcho } = await import("@/app/(main)/echoes/action");
             const result = await deleteEcho(echo.id);
 
             if (!result.success) {
@@ -158,38 +156,6 @@ export default function EchoCard({ echo, index, isOwn = false, onDelete, onToggl
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
-                        // <AlertDialog>
-                        //     <AlertDialogTrigger asChild>
-                        //         <button
-                        //             disabled={isDeleting}
-                        //             className="shrink-0 p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        //             title="Delete echo"
-                        //         >
-                        //             {isDeleting
-                        //                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        //                 : <Trash2 className="h-3.5 w-3.5" />
-                        //             }
-                        //         </button>
-                        //     </AlertDialogTrigger>
-                        //     <AlertDialogContent>
-                        //         <AlertDialogHeader>
-                        //             <AlertDialogTitle>Delete this echo?</AlertDialogTitle>
-                        //             <AlertDialogDescription>
-                        //                 "{echo.title}" will be permanently removed from the network.
-                        //                 This cannot be undone.
-                        //             </AlertDialogDescription>
-                        //         </AlertDialogHeader>
-                        //         <AlertDialogFooter>
-                        //             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        //             <AlertDialogAction
-                        //                 onClick={handleDelete}
-                        //                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        //             >
-                        //                 Delete
-                        //             </AlertDialogAction>
-                        //         </AlertDialogFooter>
-                        //     </AlertDialogContent>
-                        // </AlertDialog>
                     )}
                 </div>
 
