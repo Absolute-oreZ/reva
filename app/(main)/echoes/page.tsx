@@ -1,9 +1,52 @@
-export default function Moments() {
+import { createClient } from "@/lib/supabase/server";
+import EchoesFeed from "@/components/echoes/echoes-feed";
+
+export const revalidate = 60;
+
+export type EchoFeedItem = {
+    id: string;
+    title: string;
+    description: string;
+    intensity: number;
+    location: string;
+    latitude: number;
+    longitude: number;
+    display_name: string;
+    image_url: string | null;
+    is_public: boolean;
+    created_at: string;
+    user_id: string | null;
+};
+
+const PAGE_SIZE = 12;
+
+export default async function EchoesPage() {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data: publicEchoes } = await supabase
+        .from("echoes")
+        .select("id, title, description, intensity, location, latitude, longitude, display_name, image_url, is_public, created_at, user_id")
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .range(0, PAGE_SIZE - 1);
+
+    const { data: myEchoes } = user && !user.is_anonymous
+        ? await supabase
+            .from("echoes")
+            .select("id, title, description, intensity, location, latitude, longitude, display_name, image_url, is_public, created_at, user_id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+        : { data: null };
+
     return (
-        <main className="min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden font-sans">
-            <section className="py-24 px-6 md:px-20">
-                Echoes
-            </section>
-        </main>
-    )
+        <EchoesFeed
+            initialPublicEchoes={(publicEchoes as EchoFeedItem[]) ?? []}
+            initialMyEchoes={(myEchoes as EchoFeedItem[]) ?? []}
+            currentUserId={user?.id ?? null}
+            isAnon={user?.is_anonymous ?? true}
+            pageSize={PAGE_SIZE}
+        />
+    );
 }
