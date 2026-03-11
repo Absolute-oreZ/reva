@@ -1,5 +1,5 @@
 import NavigationMenu from "@/components/shared/navigation-menu";
-import { Toaster } from "@/components/ui/sonner";
+import { UserProvider } from "@/lib/context/user-context";
 
 export default function MainLayout({
   children,
@@ -8,8 +8,10 @@ export default function MainLayout({
 }) {
   return (
     <>
-      <NavigationMenu />
-      {children}
+      <UserProvider>
+        <NavigationMenu />
+        {children}
+      </UserProvider >
     </>
   )
 }

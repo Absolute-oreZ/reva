@@ -36,7 +36,7 @@ import Link from "next/link";
 import { createEcho } from "@/app/(main)/echoes/new/action";
 import { EchoInput } from "@/app/(main)/echoes/new/schema";
 import { createClient } from "@/lib/supabase/client";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { useUser } from "@/lib/context/user-context";
 
 const STEPS = [
     { id: "anchor", label: "Location", sub: "Set Origin" },
@@ -75,7 +75,7 @@ export default function EchoWizard() {
     const [isUploading, setIsUploading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isIdentityReady, setIsIdentityReady] = useState(false);
-    const [user, setUser] = useState<SupabaseUser | undefined | null>(null);
+    const { user } = useUser();
 
     const hasCheckedForDraft = useRef(false);
 
@@ -115,18 +115,16 @@ export default function EchoWizard() {
     useEffect(() => {
         const ensureIdentity = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            let currentUser = session?.user ?? null;
 
             if (!session) {
-                const { data } = await supabase.auth.signInAnonymously();
-                currentUser = data.user;
+                await supabase.auth.signInAnonymously();
             }
 
-            if (currentUser && !currentUser.is_anonymous) {
+            if (user && !user.is_anonymous) {
                 const { data: profile } = await supabase
                     .from("users")
                     .select("display_name")
-                    .eq("id", currentUser.id)
+                    .eq("id", user.id)
                     .single();
 
                 if (profile?.display_name) {
@@ -134,7 +132,6 @@ export default function EchoWizard() {
                 }
             }
 
-            setUser(currentUser);
             setIsIdentityReady(true);
         };
         ensureIdentity();
@@ -302,10 +299,10 @@ export default function EchoWizard() {
     };
 
     useEffect(() => {
-        if (formData.display_name === "Anonymous Observer" && !user) {
+        if (formData.display_name === "Anonymous Observer" && (!user || user.is_anonymous)) {
             generateAnonymousName();
         }
-    }, [user]);
+    }, []);
 
     const handlePreAuthRedirect = (destination: "/login" | "/signup") => {
         if (user?.id) {

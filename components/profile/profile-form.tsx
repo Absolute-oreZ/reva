@@ -12,6 +12,7 @@ import {
     updateDisplayName,
     updatePassword,
 } from "@/app/(main)/profile/action";
+import { useUser } from "@/lib/context/user-context";
 
 type Props = {
     initialDisplayName: string;
@@ -21,6 +22,7 @@ type Props = {
 type FieldState = "idle" | "loading" | "success";
 
 export default function ProfileForm({ initialDisplayName, hasPassword }: Props) {
+    const { refreshDisplayName } = useUser();
     const [displayName, setDisplayName] = useState(initialDisplayName);
     const [nameState, setNameState] = useState<FieldState>("idle");
 
@@ -30,6 +32,7 @@ export default function ProfileForm({ initialDisplayName, hasPassword }: Props) 
         const result = await updateDisplayName(displayName);
         if (result.success) {
             setNameState("success");
+            await refreshDisplayName();
             toast.success("Display name updated");
             setTimeout(() => setNameState("idle"), 2000);
         } else {
@@ -171,9 +174,8 @@ export default function ProfileForm({ initialDisplayName, hasPassword }: Props) 
                                     return (
                                         <div
                                             key={i}
-                                            className={`h-1 flex-1 rounded-full transition-colors ${
-                                                i < strength ? colors[strength - 1] : "bg-muted"
-                                            }`}
+                                            className={`h-1 flex-1 rounded-full transition-colors ${i < strength ? colors[strength - 1] : "bg-muted"
+                                                }`}
                                         />
                                     );
                                 })}

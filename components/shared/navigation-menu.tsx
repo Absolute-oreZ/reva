@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, LogIn, LogOut, ShieldCheck, UserCircle2 } from "lucide-react";
 import Image from "next/image";
@@ -9,15 +9,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
-
-const NAV_LINKS = [
-    { name: "Home", href: "/" },
-    { name: "Echoes", href: "/echoes" },
-    { name: "Global Pulse", href: "/globe" },
-];
-
-type AuthState = "loading" | "anon" | "authenticated" | "guest";
+import { NAV_LINKS } from "@/data";
+import { useUser } from "@/lib/context/user-context";
 
 const NavigationMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -25,45 +18,7 @@ const NavigationMenu = () => {
     const router = useRouter();
     const supabase = createClient();
 
-    const [authState, setAuthState] = useState<AuthState>("loading");
-    const [user, setUser] = useState<SupabaseUser | null>(null);
-    const [displayName, setDisplayName] = useState<string | null>(null);
-
-    const fetchDisplayName = async (userId: string) => {
-        const { data } = await supabase
-            .from("users")
-            .select("display_name")
-            .eq("id", userId)
-            .single();
-        setDisplayName(data?.display_name ?? null);
-    };
-
-    useEffect(() => {
-        const resolveAuthState = (u: SupabaseUser | null): AuthState => {
-            if (!u) return "guest";
-            if (u.is_anonymous) return "anon";
-            return "authenticated";
-        };
-
-        supabase.auth.getUser().then(({ data: { user: u } }) => {
-            setUser(u);
-            setAuthState(resolveAuthState(u));
-            if (u && !u.is_anonymous) fetchDisplayName(u.id);
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            const u = session?.user ?? null;
-            setUser(u);
-            setAuthState(resolveAuthState(u));
-            if (u && !u.is_anonymous) {
-                fetchDisplayName(u.id);
-            } else {
-                setDisplayName(null);
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [supabase]);
+    const { user, displayName, authState } = useUser();
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
