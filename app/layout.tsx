@@ -43,14 +43,6 @@ export const metadata: Metadata = {
     title: "REVA — Global Déjà Vu Mapping",
     description:
       "Log your déjà vu in real time and watch it pulse on a 3D globe alongside signals from people around the world.",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "REVA — Global Déjà Vu Mapping",
-      },
-    ],
   },
 
   twitter: {
@@ -58,7 +50,6 @@ export const metadata: Metadata = {
     title: "REVA — Global Déjà Vu Mapping",
     description:
       "Log your déjà vu in real time and watch it pulse on a 3D globe alongside signals from people around the world.",
-    images: ["/og-image.png"],
   },
 
   robots: {
