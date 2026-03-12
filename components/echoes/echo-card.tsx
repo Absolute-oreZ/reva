@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Zap, Clock, User, Lock, Globe, Image as ImageIcon, Trash2, Loader2, Trash2Icon } from "lucide-react";
@@ -138,9 +139,11 @@ export default function EchoCard({ echo, index, isOwn = false, onDelete, onToggl
             <div className="flex flex-col gap-3 p-5 grow">
 
                 <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-bold text-base leading-snug tracking-tight line-clamp-2 group-hover:text-primary transition-colors">
-                        {echo.title}
-                    </h3>
+                    <Link href={`/echoes/${echo.id}`}>
+                        <h3 className="font-bold text-base leading-snug tracking-tight line-clamp-2 group-hover:text-primary transition-colors">
+                            {echo.title}
+                        </h3>
+                    </Link>
 
                     {isOwn && (
                         <AlertDialog>
