@@ -54,6 +54,7 @@ export default function EchoCard({ echo, index, isOwn = false, onDelete, onToggl
     const meta = intensityMeta(echo.intensity);
 
     const [isPublic, setIsPublic] = useState(echo.is_public);
+    const [imgError, setImgError] = useState(false);
     const [isToggling, setIsToggling] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -119,12 +120,13 @@ export default function EchoCard({ echo, index, isOwn = false, onDelete, onToggl
             transition={{ duration: 0.35, delay: Math.min(index * 0.05, 0.4) }}
             className="group relative flex flex-col bg-card border border-border/60 rounded-3xl overflow-hidden hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
         >
-            {echo.image_url ? (
+            {echo.image_url && !imgError ? (
                 <div className="h-40 w-full overflow-hidden bg-muted shrink-0">
                     <img
                         src={echo.image_url}
                         alt={echo.title}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={() => setImgError(true)}
                     />
                 </div>
             ) : (
