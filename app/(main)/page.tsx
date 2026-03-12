@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import Threads from "@/components/shared/Threads";
 import {
@@ -70,6 +71,38 @@ const steps = [
   },
 ];
 
+export async function generateMetadata(): Promise<Metadata> {
+    const supabase = await createClient();
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await supabase
+        .from("echoes")
+        .select("*", { count: "exact", head: true })
+        .eq("is_public", true)
+        .gte("created_at", since);
+ 
+    const echoCount = count ?? 0;
+    const description =
+        echoCount > 0
+            ? `${echoCount} déjà vu experiences logged in the last 24 hours. Pin yours on the global map.`
+            : "Log your déjà vu in real time and watch it pulse on a 3D globe alongside signals from people around the world.";
+ 
+    return {
+        title: "REVA — Global Déjà Vu Mapping",
+        description,
+        alternates: { canonical: "/" },
+        openGraph: {
+            title: "REVA — Did that just happen before?",
+            description,
+            url: "/",
+            type: "website",
+        },
+        twitter: {
+            title: "REVA — Did that just happen before?",
+            description,
+        },
+    };
+}
+
 export default async function LandingPage() {
   const supabase = await createClient();
 
@@ -119,13 +152,12 @@ export default async function LandingPage() {
 
       <section className="relative flex flex-col items-center justify-center py-32 px-6 md:px-20 min-h-[95vh] border-b border-border/40 overflow-hidden">
         <div className="absolute inset-0 z-0 opacity-25 pointer-events-none">
-          {/* TODO uncomment this or find alternative */}
-          {/* <Threads
+           <Threads
             color={[0.4, 0.2, 1.0]}
             amplitude={0.4}
             distance={0.25}
             enableMouseInteraction={false}
-          /> */}
+          />
         </div>
         <div className="absolute inset-0 -z-10 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-200 rounded-full bg-primary/8 blur-[120px]" />

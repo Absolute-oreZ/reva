@@ -1,7 +1,8 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import GlobeView from "@/components/globe/globe-view";
 
-export const revalidate = 60; // re-fetch server data every 60s
+export const revalidate = 60;
 
 export type GlobeEcho = {
     id: string;
@@ -16,6 +17,24 @@ export type GlobeEcho = {
     created_at: string;
     image_url: string | null;
 };
+
+export const metadata: Metadata = {
+    title: "Global Pulse",
+    description:
+        "Watch déjà vu experiences light up in real time on a 3D interactive globe. Every pulse is a real moment logged by someone, somewhere.",
+    alternates: { canonical: "/globe" },
+    openGraph: {
+        title: "Global Pulse — REVA",
+        description:
+            "Watch déjà vu experiences light up in real time on a 3D interactive globe.",
+        url: "/globe",
+    },
+    twitter: {
+        title: "Global Pulse — REVA",
+        description: "Watch déjà vu experiences light up on a 3D globe in real time.",
+    },
+};
+
 
 export default async function GlobePage() {
     const supabase = await createClient();

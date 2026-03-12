@@ -1,9 +1,19 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProfileForm from "@/components/profile/profile-form";
 import ProfileStats from "@/components/profile/profile-stats";
 import DangerZone from "@/components/profile/danger-zone";
 import { Separator } from "@/components/ui/separator";
+
+export const metadata: Metadata = {
+    title: "Profile",
+    description: "Manage your REVA account, display name, and echo history.",
+    robots: {
+        index: false,
+        follow: false,
+    },
+};
 
 export default async function ProfilePage() {
     const supabase = await createClient();
