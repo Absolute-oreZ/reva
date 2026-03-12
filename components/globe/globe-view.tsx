@@ -55,6 +55,7 @@ export default function GlobeView({ initialEchoes }: Props) {
     const [isGlobeReady, setIsGlobeReady] = useState(false);
     const [globeSize, setGlobeSize] = useState({ width: 0, height: 0 });
 
+    // null = unknown (SSR / pre-hydration), true = show globe, false = show list
     const [webGLAvailable, setWebGLAvailable] = useState<boolean | null>(null);
 
     useEffect(() => {
@@ -104,20 +105,78 @@ export default function GlobeView({ initialEchoes }: Props) {
             .channel("public-echoes-realtime")
             .on(
                 "postgres_changes",
-                {
-                    event: "INSERT",
-                    schema: "public",
-                    table: "echoes",
-                    filter: "is_public=eq.true",
-                },
+                { event: "INSERT", schema: "public", table: "echoes" },
                 (payload) => {
-                    setEchoes((prev) => [payload.new as GlobeEcho, ...prev]);
+                    const echo = payload.new as GlobeEcho;
+                    if (echo.is_public) {
+                        setEchoes((prev) => [echo, ...prev]);
+                    }
+                }
+            )
+            .on(
+                "postgres_changes",
+                { event: "UPDATE", schema: "public", table: "echoes" },
+                (payload) => {
+                    const updated = payload.new as Partial<GlobeEcho>;
+                    const previous = payload.old as Partial<GlobeEcho>;
+
+                    const isStrippedByRLS = !updated.id;
+
+                    if (isStrippedByRLS) {
+                        const removedId = previous.id!;
+                        setSelectedEcho((sel) => sel?.id === removedId ? null : sel);
+                        setEchoes((prev) => prev.filter((e) => e.id !== removedId));
+                        return;
+                    }
+
+                    setEchoes((prev) => {
+                        const exists = prev.some((e) => e.id === updated.id);
+
+                        if (!updated.is_public) {
+                            setSelectedEcho((sel) => sel?.id === updated.id ? null : sel);
+                            return prev.filter((e) => e.id !== updated.id);
+                        }
+
+                        if (exists) {
+                            return prev.map((e) => e.id === updated.id ? updated as GlobeEcho : e);
+                        }
+
+                        return [updated as GlobeEcho, ...prev];
+                    });
+                }
+            )
+            .on(
+                "postgres_changes",
+                { event: "DELETE", schema: "public", table: "echoes" },
+                (payload) => {
+                    const deletedId = payload.old.id as string;
+                    setSelectedEcho((sel) => sel?.id === deletedId ? null : sel);
+                    setEchoes((prev) => prev.filter((e) => e.id !== deletedId));
                 }
             )
             .subscribe();
 
-
         return () => { supabase.removeChannel(channel); };
+    }, [supabase]);
+
+    useEffect(() => {
+        const broadcastChannel = supabase
+            .channel("echo-visibility")
+            .on(
+                "broadcast",
+                { event: "visibility_change" },
+                ({ payload }) => {
+                    const { id, is_public } = payload as { id: string; is_public: boolean };
+
+                    if (!is_public) {
+                        setSelectedEcho((sel) => sel?.id === id ? null : sel);
+                        setEchoes((prev) => prev.filter((e) => e.id !== id));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => { supabase.removeChannel(broadcastChannel); };
     }, [supabase]);
 
     const renderFallbackList = () => (
@@ -238,7 +297,7 @@ export default function GlobeView({ initialEchoes }: Props) {
         <div className="fixed inset-0 bg-[#020409] overflow-hidden">
 
             <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-50 h-50 rounded-full bg-violet-950/20 blur-[120px]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 rounded-full bg-violet-950/20 blur-[120px]" />
             </div>
 
             <div className="absolute inset-0 flex items-center justify-center">

@@ -12,6 +12,7 @@ export type GlobeEcho = {
     longitude: number;
     location: string;
     display_name: string;
+    is_public: boolean;
     created_at: string;
     image_url: string | null;
 };

@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { deleteEcho, toggleEchoVisibility } from "@/app/(main)/echoes/action";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 
 type Props = {
     echo: EchoFeedItem;
@@ -75,6 +76,15 @@ export default function EchoCard({ echo, index, isOwn = false, onDelete, onToggl
 
             onToggle?.(echo.id, next);
             toast.success(next ? "Echo is now public" : "Echo is now private");
+
+            const supabaseBroadcast = createClient();
+            await supabaseBroadcast
+                .channel("echo-visibility")
+                .send({
+                    type: "broadcast",
+                    event: "visibility_change",
+                    payload: { id: echo.id, is_public: next },
+                });
         } catch {
             setIsPublic(prev);
             toast.error("Something went wrong");
