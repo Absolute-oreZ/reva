@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import GlobeView from "@/components/globe/globe-view";
+import GlobeErrorBoundary from "@/components/globe/globe-error-boundary";
 
 export const revalidate = 60;
 
@@ -49,6 +50,8 @@ export default async function GlobePage() {
         .order("created_at", { ascending: false });
 
     return (
-        <GlobeView initialEchoes={(echoes as GlobeEcho[]) ?? []} />
+        <GlobeErrorBoundary>
+            <GlobeView initialEchoes={(echoes as GlobeEcho[]) ?? []} />
+        </GlobeErrorBoundary>
     );
 }
