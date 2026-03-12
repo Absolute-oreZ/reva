@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import EchoesFeed from "@/components/echoes/echoes-feed";
 
@@ -20,22 +19,6 @@ export type EchoFeedItem = {
 };
 
 const PAGE_SIZE = 12;
-
-export const metadata: Metadata = {
-    title: "Echoes",
-    description:
-        "Browse déjà vu experiences shared from around the world. Filter by intensity, location, or time — and add your own.",
-    alternates: { canonical: "/echoes" },
-    openGraph: {
-        title: "Echoes Feed — REVA",
-        description: "Browse déjà vu experiences shared from around the world.",
-        url: "/echoes",
-    },
-    twitter: {
-        title: "Echoes Feed — REVA",
-        description: "Browse déjà vu experiences shared from around the world.",
-    },
-};
 
 export default async function EchoesPage() {
     const supabase = await createClient();

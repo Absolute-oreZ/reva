@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   creator: "REVA",
 
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://reva.app"
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://reva-khaki.vercel.app"
   ),
 
   openGraph: {
@@ -43,6 +43,14 @@ export const metadata: Metadata = {
     title: "REVA — Global Déjà Vu Mapping",
     description:
       "Log your déjà vu in real time and watch it pulse on a 3D globe alongside signals from people around the world.",
+    images: [
+        {
+            url: "https://reva-khaki.vercel.app/og-image.png",
+            width: 1200,
+            height: 630,
+            alt: "REVA — Global Déjà Vu Mapping",
+        },
+    ],
   },
 
   twitter: {
@@ -50,6 +58,7 @@ export const metadata: Metadata = {
     title: "REVA — Global Déjà Vu Mapping",
     description:
       "Log your déjà vu in real time and watch it pulse on a 3D globe alongside signals from people around the world.",
+    images: ["https://reva-khaki.vercel.app/og-image.png"],
   },
 
   robots: {
