@@ -95,10 +95,12 @@ export async function generateMetadata(): Promise<Metadata> {
             description,
             url: "/",
             type: "website",
+            images: [{ url: "https://reva-khaki.vercel.app/og-image.png", width: 1200, height: 630 }],
         },
         twitter: {
             title: "REVA — Did that just happen before?",
             description,
+            images: ["https://reva-khaki.vercel.app/og-image.png"],
         },
     };
 }
